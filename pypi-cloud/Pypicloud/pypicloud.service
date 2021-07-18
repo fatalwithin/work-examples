@@ -1,0 +1,14 @@
+[Unit]
+Description=PyPICloud Server
+After=network.target
+
+[Service]
+Type=idle
+PIDFile=/var/lib/pypicloud/pypi/app.pid
+User=pypicloud
+ExecStart=/var/lib/pypicloud/pypi/bin/uwsgi --ini-paste-logged /var/lib/pypicloud/server.ini --http 0.0.0.0:6543 --pidfile /var/lib/pypicloud/pypi/app.pid
+ExecReload=/bin/kill -s HUP $MAINPID
+ExecStop=/bin/kill -s TERM $MAINPID
+
+[Install]
+WantedBy=multi-user.target

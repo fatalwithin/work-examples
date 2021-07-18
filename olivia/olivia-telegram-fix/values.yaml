@@ -1,0 +1,153 @@
+image:
+  django: 
+    repository: 
+      master: git.sbear.ru:4567/olivia/olivia-telegram/master
+      develop: git.sbear.ru:4567/olivia/olivia-telegram/develop
+    tag:
+      master: latest
+      develop: latest
+    pullPolicy:
+      master: IfNotPresent
+      develop: IfNotPresent
+  nginx:
+    repository: nginx
+    tag: stable-alpine
+    pullPolicy: IfNotPresent
+  
+imagePullSecrets:
+  - name: gitlab-registry
+
+command:
+  web: ['gunicorn', 'app.wsgi:application', '--name', 'app', '--bind', ':8000', '--workers', '1']
+  bot: ['python', '/app/manage.py', 'run3']
+  migrate: ['python', '/app/manage.py', 'migrate']
+  collectstatic: ['python', '/app/manage.py', 'collectstatic', '--noinput']
+
+replicaCount: 
+  web: 
+    master: 1
+    develop: 1
+  bot: 
+    master: 1
+    develop: 1
+  nginx: 
+    master: 1
+    develop: 1
+
+ingress:
+  domain: 
+    master: oliviabot.olivia.tk
+    develop: oliviabot-dev.olivia.tk
+      
+pvc:
+  static:
+    storage: 
+      master: 1Gi
+      develop: 1Gi
+  media:
+    storage:
+      master: 1Gi
+      develop: 1Gi
+
+envFile: 
+  master: |
+    [common]
+    SECRET_KEY=sFwUqvE4U4SXjcnwUD6LAH7pW4ZFGkt2
+    DEBUG=False
+    ALLOWED_HOSTS=*
+    LANGUAGE_CODE=en-us
+    TIME_ZONE=UTC
+
+    [telergam]
+    BOT_TOKEN=621076807:AAHvnKCl9IqjALTZSw87EFLX-J9Vr8FO7zA
+
+    [skill_sdk]
+    API_HOST=http://ec2-34-253-89-92.eu-west-1.compute.amazonaws.com:8010/pva_core
+    ADMIN_KEY=qwerty4477
+    USER_PREFIX=tbp
+
+    [google]
+    RGC_STT_HOST=http://ec2-52-17-228-123.eu-west-1.compute.amazonaws.com:8888/recognize_google
+
+    [wit_ai]
+    WIT_AI_ACCESS_TOKEN=PDJ7H3UTZIW7ZF7NEZYQPCN2VU7A2HKO
+
+    [postgres]
+    POSTGRES_PASSWORD=xSJKnqAzTkb68DGz
+    POSTGRES_USER=antoha_bot_django
+    POSTGRES_DB=antoha_bot_django
+    POSTGRES_HOST=10.0.10.88
+    POSTGRES_PORT=5432
+
+    [rabbitmq]
+    RABBITMQ_HOST=10.0.2.176
+    RABBITMQ_PORT=5672
+    RABBITMQ_DEFAULT_USER=antoha_bot_django
+    RABBITMQ_DEFAULT_PASS=Uy5TbU4CpsS8Yf3C
+    RABBITMQ_VIRTUAL_HOST=olivia_backend
+    
+  develop: |
+    [common]
+    SECRET_KEY=sFwUqvE4U4SXjcnwUD6LAH7pW4ZFGkt2
+    DEBUG=False
+    ALLOWED_HOSTS=*
+    LANGUAGE_CODE=en-us
+    TIME_ZONE=UTC
+
+    [telergam]
+    BOT_TOKEN=621076807:AAHvnKCl9IqjALTZSw87EFLX-J9Vr8FO7zA
+
+    [skill_sdk]
+    API_HOST=http://ec2-34-253-89-92.eu-west-1.compute.amazonaws.com:8010/pva_core
+    ADMIN_KEY=qwerty4477
+    USER_PREFIX=tbp
+
+    [google]
+    RGC_STT_HOST=http://ec2-52-17-228-123.eu-west-1.compute.amazonaws.com:8888/recognize_google
+
+    [wit_ai]
+    WIT_AI_ACCESS_TOKEN=PDJ7H3UTZIW7ZF7NEZYQPCN2VU7A2HKO
+
+    [postgres]
+    POSTGRES_PASSWORD=xSJKnqAzTkb68DGz
+    POSTGRES_USER=antoha_bot_django
+    POSTGRES_DB=antoha_bot_django
+    POSTGRES_HOST=10.0.10.88
+    POSTGRES_PORT=5432
+
+    [rabbitmq]
+    RABBITMQ_HOST=10.0.2.176
+    RABBITMQ_PORT=5672
+    RABBITMQ_DEFAULT_USER=antoha_bot_django
+    RABBITMQ_DEFAULT_PASS=Uy5TbU4CpsS8Yf3C
+    RABBITMQ_VIRTUAL_HOST=olivia_backend
+
+nginxConf:
+  master: |
+    server {
+        listen 80;
+
+        location /static/ {
+            autoindex on;
+            alias /static/;
+        }
+
+        location /media/ {
+            autoindex on;
+            alias /media/;
+        }
+    }
+  develop: |
+    server {
+        listen 80;
+
+        location /static/ {
+            autoindex on;
+            alias /static/;
+        }
+
+        location /media/ {
+            autoindex on;
+            alias /media/;
+        }
+    }

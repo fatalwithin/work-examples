@@ -1,0 +1,94 @@
+version: '3'
+services:
+
+    mysql-owa:
+      image: mariadb:10.2
+      volumes:
+        - mysql-vol-1:/var/lib/mysql/
+        - mysql-socket-vol-1:/var/run/mysqld/
+        - ./data/conf/mysql/:/etc/mysql/conf.d/:ro
+      environment:
+        - TZ=${TZ}
+        - MYSQL_ROOT_PASSWORD=${DBROOT}
+        - MYSQL_DATABASE=${DBNAME}
+        - MYSQL_USER=${DBUSER}
+        - MYSQL_PASSWORD=${DBPASS}
+      restart: always
+      dns:
+        - ${IPV4_NETWORK:-172.20.1}.254
+      ports:
+        - "${SQL_PORT:-127.0.0.1:13306}:3306"
+      logging:
+        driver: json-file
+        options:
+          max-size: "10m"
+          max-file: "5"
+      networks:
+        owa-network:
+          aliases:
+            - mysql
+
+    nginx-owa:
+      image: nginx:latest
+      command: /bin/sh -c "cp /etc/nginx/conf.d/nginx.conf /etc/nginx/nginx.conf"
+      environment:
+        - HTTPS_PORT=${HTTPS_PORT:-443}
+        - HTTP_PORT=${HTTP_PORT:-80}
+        - OWA_HOSTNAME=${OWA_HOSTNAME}
+        - IPV4_NETWORK=${IPV4_NETWORK:-172.20.1}
+        - TZ=${TZ}
+      volumes:
+        - ./data/owa:/owa:ro
+        - ./data/conf/nginx/:/etc/nginx/conf.d/:rw
+      ports:
+        - "${HTTPS_BIND:-0.0.0.0}:${HTTPS_PORT:-443}:${HTTPS_PORT:-443}"
+        - "${HTTP_BIND:-0.0.0.0}:${HTTP_PORT:-80}:${HTTP_PORT:-80}"
+      restart: always
+      dns:
+        - ${IPV4_NETWORK:-172.20.1}.254
+      networks:
+        owa-network:
+          aliases:
+            - nginx
+
+    main-owa:
+      image: owa/main-owa:1.01
+      build: ./data/Dockerfiles/main
+      volumes:
+        - ./data/owa:/owa:rw
+        - ./data/conf/main/:/tmp/owa-config:rw
+        - mysql-socket-vol-1:/var/run/mysqld/
+      environment:
+        - TZ=${TZ}
+        - MYSQL_ROOT_PASSWORD=${DBROOT}
+        - MYSQL_DATABASE=${DBNAME}
+        - MYSQL_USER=${DBUSER}
+        - MYSQL_PASSWORD=${DBPASS}
+        - OWA_HOSTNAME=${OWA_HOSTNAME}
+      restart: always
+      dns:
+        - ${IPV4_NETWORK:-172.20.1}.254
+      logging:
+        driver: json-file
+        options:
+          max-size: "10m"
+          max-file: "5"
+      networks:
+        owa-network:
+          aliases:
+            - owa
+
+networks:
+  owa-network:
+    driver: bridge
+    enable_ipv6: true
+    ipam:
+      driver: default
+      config:
+        - subnet: ${IPV4_NETWORK:-172.20.1}.0/24
+        - subnet: ${IPV6_NETWORK:-fd4d:6169:6c63:6f88::/64}
+
+volumes:
+  # Storage for MySQL
+  mysql-vol-1:
+  mysql-socket-vol-1:

@@ -1,0 +1,112 @@
+# Apply this deploy after job migrate and job collectstatic complete
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  labels:
+    app: olivia-telegram
+    type: web
+spec:
+  replicas: {{ pluck .Values.global.env .Values.replicaCount.web | first }}
+  selector:
+    matchLabels:
+      app: olivia-telegram
+      type: web
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/django-cm.yaml") . | sha256sum }}
+      labels:
+        app: olivia-telegram
+        type: web
+    spec:
+      containers:
+        - name: web
+          image: "{{ pluck .Values.global.env .Values.image.django.repository | first }}:{{ pluck .Values.global.env .Values.image.django.tag | first }}"
+          imagePullPolicy: {{ pluck .Values.global.env .Values.image.django.pullPolicy | first }}
+          command: {{ .Values.command.web }}
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DJANGO_SETTINGS_MODULE
+              value: "app.settings"
+            - name: C_FORCE_ROOT
+              value: "true"
+          volumeMounts:
+            - name: static
+              mountPath: /static
+            - name: media
+              mountPath: /media
+            - name: web-tmpfs
+              mountPath: /tmp
+            - name: envfile
+              mountPath: /app/.env
+              subPath: .env
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end}}
+      volumes:
+        - name: static
+          persistentVolumeClaim:
+            claimName: django-static-pvc
+        - name: media
+          persistentVolumeClaim:
+            claimName: django-media-pvc
+        - name: web-tmpfs
+          emptyDir: {}
+        - name: envfile
+          configMap:
+            name: django-config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bot
+  labels:
+    app: olivia-telegram
+    type: bot
+spec:
+  replicas: {{ pluck .Values.global.env .Values.replicaCount.bot | first }}
+  selector:
+    matchLabels:
+      app: olivia-telegram
+      type: bot
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/django-cm.yaml") . | sha256sum }}
+      labels:
+        app: olivia-telegram
+        type: bot
+    spec:
+      containers:
+        - name: bot
+          image: "{{ pluck .Values.global.env .Values.image.django.repository | first }}:{{ pluck .Values.global.env .Values.image.django.tag | first }}"
+          imagePullPolicy: {{ pluck .Values.global.env .Values.image.django.pullPolicy | first }}
+          command: {{ .Values.command.bot }}
+          env:
+            - name: DJANGO_SETTINGS_MODULE
+              value: "app.settings"
+            - name: C_FORCE_ROOT
+              value: "true"
+          volumeMounts:
+            - name: media
+              mountPath: /media
+            - name: bot-tmpfs
+              mountPath: /tmp
+            - name: envfile
+              mountPath: /app/.env
+              subPath: .env
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end}}
+      volumes:
+        - name: media
+          persistentVolumeClaim:
+            claimName: django-media-pvc
+        - name: bot-tmpfs
+          emptyDir: {}
+        - name: envfile
+          configMap:

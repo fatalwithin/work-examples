@@ -1,0 +1,58 @@
+version: '3.7'
+
+x-defaults: &defaults
+  restart: unless-stopped
+  depends_on:
+    - redis
+    - memcached
+  env_file: .env_stack
+  environment:
+    SENTRY_SECRET_KEY: ${SENTRY_SECRET_KEY}
+    SENTRY_POSTGRES_HOST: ${SENTRY_POSTGRES_HOST}
+    SENTRY_POSTGRES_PORT: ${SENTRY_POSTGRES_PORT}
+    SENTRY_DB_NAME: ${SENTRY_DB_NAME}
+    SENTRY_DB_USER: ${SENTRY_DB_USER}
+    SENTRY_DB_PASSWORD: ${SENTRY_DB_PASSWORD}
+    SENTRY_REDIS_HOST: ${SENTRY_REDIS_HOST}
+    SENTRY_MEMCACHED_HOST: ${SENTRY_MEMCACHED_HOST}
+    SENTRY_SERVER_EMAIL: ${SENTRY_SERVER_EMAIL}
+    SENTRY_EMAIL_HOST: ${SENTRY_EMAIL_HOST}
+  volumes:
+    - /home/centos/sentry/sentry-data:/var/lib/sentry/files
+
+services:
+  web:
+    <<: *defaults
+    build:
+      context: ./web 
+    image: ${SENTRY_IMAGE_NAME}
+    ports:
+      - 9000:9000
+
+  worker:
+    <<: *defaults
+    image: ${SENTRY_IMAGE_NAME}
+    command: run worker
+
+  cron:
+    <<: *defaults
+    image: ${SENTRY_IMAGE_NAME}
+    command: run cron
+
+  memcached:
+    restart: unless-stopped
+    image: memcached:alpine
+
+  redis:
+    restart: unless-stopped
+    image: redis:4-alpine
+
+
+networks:
+  default:
+    external:
+      name: web-apps-network
+
+# volumes:
+#     sentry-data:
+#       external: true

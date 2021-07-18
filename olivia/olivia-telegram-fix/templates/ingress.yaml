@@ -1,0 +1,33 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ingress
+  labels:
+    app: olivia-telegram
+  annotations:
+    kubernetes.io/tls-acme: 'true'
+spec:
+  tls:
+    - hosts: 
+      - {{ pluck .Values.global.env .Values.ingress.domain | first }}
+      secretName: bot-tls
+  rules:
+  - host: {{ pluck .Values.global.env .Values.ingress.domain | first }}
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: web-service
+          servicePort: 8000
+      - path: /static
+        backend:
+          serviceName: nginx-service
+          servicePort: 80
+      - path: /media
+        backend:
+          serviceName: nginx-service
+          servicePort: 80
+      - path: /{{ (split "=" (regexFind "(?m)BOT_TOKEN=([[:alnum:]]{9}:.{35})" (pluck .Values.global.env .Values.envFile | first )))._1 }}
+        backend:
+          serviceName: bot-service
+          servicePort: 8011

@@ -1,0 +1,60 @@
+image: docker:stable
+
+services:
+    - docker:dind
+
+Deploy to Test:
+  <<: *base_deploy
+  environment:
+    name: develop
+
+Deploy to Production:
+  <<: *base_deploy
+  environment:
+    name: master
+  when: manual
+
+stages:
+    - build
+    - deploy
+
+variables:
+    IMAGE: ${CI_REGISTRY_IMAGE}/image_name:${CI_COMMIT_REF_SLUG}
+    CHART_DIR: chart
+    GIT_SSL_NO_VERIFY: "true"
+    DOCKER_DRIVER: overlay2
+    DOCKER_HOST: tcp://localhost:2375
+    BASE_IMAGE_NAME: "${CI_REGISTRY_IMAGE}:latest"
+    IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
+    KUBECTL_IMAGE: ${CI_REGISTRY}/devops/aws-kubectl:latest
+    KUBECONFIG: /etc/deploy/config
+
+build:
+  stage: build
+   before_script:
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
+  script:
+    - docker build --pull -t $CI_REGISTRY_IMAGE:$CI_BUILD_REF .
+    - docker tag $CI_REGISTRY_IMAGE:$CI_BUILD_REF $CI_REGISTRY_IMAGE:latest
+    - docker push $CI_REGISTRY_IMAGE:$CI_BUILD_REF
+    - docker push $CI_REGISTRY_IMAGE:latest
+
+
+.base_deploy: &base_deploy
+  stage: deploy
+  image: $KUBECTL_IMAGE
+  script:
+  - PROJECT_NAME=${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
+  - helm upgrade
+    --install
+    --set "global.env=${CI_ENVIRONMENT_SLUG}
+    --set namespace="olivia-telegram-${CI_ENVIRONMENT_SLUG}"
+    --set name="olivia-telegram-${CI_COMMIT_REF_SLUG}
+    --set image=${IMAGE}
+    --set tag=${CI_COMMIT_SHORT_SHA}
+    --set image.tag=${CI_PIPELINE_ID} 
+    --wait
+    --force
+    ${PROJECT_NAME}
+    only:
+      - master

@@ -1,0 +1,5 @@
+user = mailcow
+password = ULZxrgpJrvAvlXfEvpeGAbQSSHXk
+hosts = unix:/var/run/mysqld/mysqld.sock
+dbname = mailcow
+query = SELECT CONCAT(JSON_UNQUOTE(JSON_EXTRACT(attributes, '$.mailbox_format')), mailbox_path_prefix, '%d/%u/') FROM mailbox WHERE username='%s' AND active = '1'

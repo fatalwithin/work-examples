@@ -1,0 +1,34 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: prepare-migrate
+  annotations:
+    # Hooks define job order execution
+    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": hook-succeeded    
+spec:
+  template:
+    spec:
+      containers:
+        - name: migrate
+          image: {{ pluck .Values.global.env .Values.image.django.repository | first }}:{{ pluck .Values.global.env .Values.image.django.tag | first }}
+          imagePullPolicy: {{ pluck .Values.global.env .Values.image.django.pullPolicy | first }}
+          command: {{ .Values.command.migrate }}
+          env:
+            - name: DJANGO_SETTINGS_MODULE
+              value: "app.settings"
+          volumeMounts:
+            - name: envfile
+              mountPath: /app/.env
+              subPath: .env
+      restartPolicy: Never
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end}}
+      volumes:
+        - name: envfile
+          configMap:
+            name: django-config
+  backoffLimit: 5

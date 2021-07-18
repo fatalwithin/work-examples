@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  labels:
+    app: olivia-telegram
+    type: nginx
+spec:
+  selector:
+    matchLabels:
+      app: olivia-telegram
+      type: nginx
+  replicas: {{ pluck .Values.global.env .Values.replicaCount.nginx | first }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/django-cm.yaml") . | sha256sum }}
+      labels:
+        app: olivia-telegram
+        type: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: "{{ .Values.image.nginx.repository }}:{{ .Values.image.nginx.tag }}"
+          imagePullPolicy: {{ .Values.image.nginx.pullPolicy }}
+          ports:
+          - containerPort: 80
+          volumeMounts:
+            - name: app-conf
+              mountPath: /etc/nginx/conf.d/app.conf
+              subPath: app.conf
+            - name: media
+              mountPath: /media
+            - name: static
+              mountPath: /static
+      volumes:
+        - name: app-conf
+          configMap:
+            name: app-conf
+        - name: static
+          persistentVolumeClaim:
+            claimName: django-static-pvc
+        - name: media
+          persistentVolumeClaim:
+            claimName: django-media-pvc
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-conf
+data:
+  app.conf: 
+    {{ pluck .Values.global.env .Values.nginxConf | first | nindent 4 }}

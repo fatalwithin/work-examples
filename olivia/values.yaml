@@ -1,0 +1,23 @@
+replicas:
+  test: 1
+  production: 1
+
+domain:
+  test: backend.sbertolo.ga
+  production: backend.sbear.ru
+
+resources:
+  requests:
+    cpu:
+      _default: 50m
+      production: 50m
+    memory:
+      _default: 256Mi
+      production: 10Mi
+  limits:
+    cpu:
+      _default: 1000M
+    memory:
+      _default: 1Gi
+      production: 1Gi
+

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: django-config
+data:
+  .env: |
+    {{ pluck .Values.global.env .Values.envFile | first | nindent 4 }}

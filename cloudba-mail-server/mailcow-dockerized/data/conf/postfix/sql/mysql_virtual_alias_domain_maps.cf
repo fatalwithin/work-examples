@@ -1,0 +1,9 @@
+user = mailcow
+password = ULZxrgpJrvAvlXfEvpeGAbQSSHXk
+hosts = unix:/var/run/mysqld/mysqld.sock
+dbname = mailcow
+query = SELECT username FROM mailbox, alias_domain
+  WHERE alias_domain.alias_domain = '%d'
+    AND mailbox.username = CONCAT('%u', '@', alias_domain.target_domain)
+    AND mailbox.active = '1'
+    AND alias_domain.active='1'
